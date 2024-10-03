@@ -39,6 +39,7 @@ public class FileController {
      */
     @PostMapping("/files")
     public String fileUpload(@RequestParam("fileUpload")MultipartFile multipartFile, Model model, Authentication authentication) throws IOException {
+
         User userModel = userService.getUser(authentication.getName());
         Integer userId = userModel.getUserId();
         String filename = multipartFile.getOriginalFilename();
@@ -65,6 +66,7 @@ public class FileController {
      */
     @GetMapping("/files/{fileId}")
     public String deleteFile(@PathVariable("fileId") Integer fileId) {
+
         fileService.delete(fileId);
         return "redirect:/result";
     }
@@ -76,16 +78,18 @@ public class FileController {
     /**
      * Method view File.
      */
-    @GetMapping("/files/view/{fileId}")
-    public void viewFile(@PathVariable("fileId") Integer fileId, HttpServletResponse response, Authentication authentication) throws IOException {
+    @GetMapping("/files/download/{fileId}")
+    public void viewFile(@PathVariable("fileId") Integer fileId, HttpServletResponse res, Authentication authentication) throws IOException {
+
         User currentUser = userService.getUser(authentication.getName());
         File file = fileService.getFile(fileId);
 
-        response.setContentType(file.getContentType());
-        response.setHeader("Content-Disposition", "filename=\"" + file.getFilename() + "\"");
-        response.setContentLengthLong(file.getFileSize());
+        res.setContentType(file.getContentType());
+        res.setHeader("Content-Disposition", "filename=\"" + file.getFilename() + "\"");
+        res.setContentLengthLong(file.getFileSize());
 
-        OutputStream ops = response.getOutputStream();
+        OutputStream ops = res.getOutputStream();
+
         try {
             ops.write(file.getFileData(), 0, file.getFileData().length);
         } catch (Exception e) {
