@@ -36,18 +36,12 @@ public class UserService {
     public boolean usernameIsAvailable(String username) {
         return userMapper.getUser(username) == null;
     }
-    public Integer createUser(User userModel) {
-
+    public Integer createUser(User user) {
         SecureRandom random = new SecureRandom();
         byte[] salt = new byte[16];
         random.nextBytes(salt);
-        //Encoder
-        String encodeSalt = Base64.getEncoder().encodeToString(salt);
-
-        String hashedPassword = hashService.getHashedValue(userModel.getPassword(), encodeSalt);
-        userModel.setSalt(encodeSalt);
-        userModel.setPassword(hashedPassword);
-
-        return userMapper.create(userModel);
+        String encodedSalt = Base64.getEncoder().encodeToString(salt);
+        String hashedPassword = hashService.getHashedValue(user.getPassword(), encodedSalt);
+        return userMapper.insert(new User(null, user.getUsername(), encodedSalt, hashedPassword, user.getFirstname(), user.getLastname()));
     }
 }

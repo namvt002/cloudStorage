@@ -1,5 +1,6 @@
 package com.udacity.jwdnd.course1.cloudstorage.controller;
 
+import com.udacity.jwdnd.course1.cloudstorage.mapper.UserMapper;
 import com.udacity.jwdnd.course1.cloudstorage.model.Note;
 import com.udacity.jwdnd.course1.cloudstorage.model.User;
 import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
@@ -8,35 +9,58 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+
+/**
+ * Controller notes.
+ */
+@RequestMapping("/home/notes")
 @Controller
 public class NoteController {
 
-    private UserService userService;
     private NoteService noteService;
+    private UserMapper userMapper;
 
-    public NoteController(UserService userService, NoteService noteService) {
-        this.userService = userService;
+    /**
+     * Constructor notes.
+     */
+    public NoteController(NoteService noteService, UserMapper userMapper) {
         this.noteService = noteService;
+        this.userMapper = userMapper;
     }
 
-    @PostMapping("/notes")
-    public String createOrUpdate(@ModelAttribute Note note, Model model, Authentication authentication) {
-        User user = userService.getUser(authentication.getName());
+    /**
+     * Method add if noteid different null else update.
+     */
+    @PostMapping
+    public String handleAddOrUpdateNote(Authentication authentication, Note note){
+        String loggedInUserName = (String) authentication.getPrincipal();
+        User user = userMapper.getUser(loggedInUserName);
         Integer userId = user.getUserId();
 
-        if(note.getNoteId() == null) {
-            note.setUserId(userId);
-            noteService.create(note);
-        } else
-            noteService.update(note);
+        if (note.getNoteid() != null) {
+            noteService.updateNote(note);
+        } else {
+            noteService.addNote(note, userId);
+        }
 
-        model.addAttribute("success", true);
-        return "redirect:/result";
+        return "redirect:/result?success";
     }
-    @GetMapping("/notes/{noteid}/delete")
-    public String delete(@PathVariable("noteid") Integer noteId) {
-        noteService.delete(noteId);
-        return "redirect:/result";
+
+
+    /**
+     * Method delete.
+     */
+    @GetMapping("/delete")
+    public String deleteFile(@RequestParam("id") int noteid, RedirectAttributes redirectAttributes){
+        if(noteid > 0){
+            noteService.deleteNote(noteid);
+            return "redirect:/result?success";
+        }
+
+
+        redirectAttributes.addAttribute("error", "Unable to delete the note.");
+        return "redirect:/result?error";
     }
 }

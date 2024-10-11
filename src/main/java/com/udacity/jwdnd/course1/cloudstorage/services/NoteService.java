@@ -6,9 +6,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+
 @Service
 public class NoteService {
-
     private NoteMapper noteMapper;
 
     public NoteService(NoteMapper noteMapper) {
@@ -18,44 +18,39 @@ public class NoteService {
     /**
      * Get note
      *
-     * @return Note
+     * @return List Note
      */
-    public Note getNote(Integer noteId) {
-        return noteMapper.getNote(noteId);
-    }
-
-    /**
-     * Get note
-     *
-     * @return List Note display table
-     */
-    public List<Note> getNotes(Integer userId) {
-        return noteMapper.getNotes(userId);
+    public List<Note> getNotes(int userid){
+        return noteMapper.getNotes(userid);
     }
 
     /**
      * Create note
      *
-     * @return noteId
      */
-    public Integer create(Note note) {
-        return noteMapper.createNote(note);
+    public void addNote(Note note, int userId){
+        Note newNote = new Note();
+        newNote.setUserid(userId);
+        newNote.setNotedescription(note.getNotedescription());
+        newNote.setNotetitle(note.getNotetitle());
+
+        noteMapper.insertNote(newNote);
     }
 
     /**
      * Update note
      *
-     * @return noteId
      */
-    public Integer update(Note note) {
-        return noteMapper.update(note);
+    public void updateNote(Note note) {
+        noteMapper.updateNote(note);
     }
 
     /**
-     * delete note
+     * Delete note
      *
+     * @return noteId
      */
-    public void delete(Integer noteId) {
-        noteMapper.delete(noteId);
+    public void deleteNote(int noteid){
+        noteMapper.deleteNote(noteid);
     }
 }

@@ -4,138 +4,59 @@ package com.udacity.jwdnd.course1.cloudstorage.model;
  * Upload files
  */
 public class File {
-
     private Integer fileId;
     private String filename;
-    private String contentType;
-    private Long fileSize;
-    private Integer userId;
-    private byte[]fileData;
+    private String contenttype;
+    private String filesize;
+    private Integer userid;
+    private byte[] filedata;
 
-    /**
-     * Constructs a new File object with specified attributes.
-     *
-     * @param fileId      file ID
-     * @param filename    filename
-     * @param contentType  contentType
-     * @param userId    userId
-     * @param fileData    fileData
-     */
-    public File(Integer fileId, String filename, String contentType, Long fileSize, Integer userId, byte[] fileData) {
-        super();
-        this.fileId = fileId;
-        this.filename = filename;
-        this.contentType = contentType;
-        this.fileSize = fileSize;
-        this.userId = userId;
-        this.fileData = fileData;
-    }
-
-    /**
-     * Get fileId
-     *
-     * @return fileId
-     */
     public Integer getFileId() {
+
         return fileId;
     }
 
-    /**
-     * Sets fileId.
-     *
-     * @param fileId
-     */
     public void setFileId(Integer fileId) {
         this.fileId = fileId;
     }
 
-    /**
-     * Get filename.
-     *
-     * @return filename
-     */
     public String getFilename() {
         return filename;
     }
 
-    /**
-     * Sets filename.
-     *
-     * @param filename
-     */
     public void setFilename(String filename) {
         this.filename = filename;
     }
 
-    /**
-     * Get filename
-     *
-     * @return filename
-     */
-    public String getContentType() {
-        return contentType;
+    public String getContenttype() {
+        return contenttype;
     }
 
-    /**
-     * Sets contentType.
-     *
-     * @param contentType
-     */
-    public void setContentType(String contentType) {
-        this.contentType = contentType;
+    public void setContenttype(String contenttype) {
+        this.contenttype = contenttype;
     }
 
-    /**
-     * Get fileSize.
-     *
-     * @return fileSize
-     */
-    public Long getFileSize() {
-        return fileSize;
+    public String getFilesize() {
+        return filesize;
     }
 
-    /**
-     * Sets fileSize.
-     *
-     * @param fileSize
-     */
-    public void setFileSize(Long fileSize) {
-        this.fileSize = fileSize;
+    public void setFilesize(String filesize) {
+        this.filesize = filesize;
     }
 
-    /**
-     * Get userId.
-     *
-     * @return userId
-     */
-    public Integer getUserId() {
-        return userId;
+    public Integer getUserid() {
+        return userid;
     }
 
-    /**
-     * Sets userId.
-     *
-     * @param userId
-     */
-    public void setUserId(Integer userId) {
-        this.userId = userId;
+    public void setUserid(Integer userid) {
+        this.userid = userid;
     }
 
-    /**
-     * Get fileData
-     *
-     * @return fileData
-     */
-    public byte[] getFileData() {
-        return fileData;
+    public byte[] getFiledata() {
+        return filedata;
     }
 
-    /**
-     * Sets fileData.
-     *
-     * @param fileData
-     */
-    public void setFileData(byte[] fileData) {
-        this.fileData = fileData;
+    public void setFiledata(byte[] filedata) {
+        this.filedata = filedata;
     }
 }

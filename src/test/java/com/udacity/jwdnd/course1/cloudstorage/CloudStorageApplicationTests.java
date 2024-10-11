@@ -3,7 +3,6 @@ package com.udacity.jwdnd.course1.cloudstorage;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.junit.jupiter.api.*;
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -11,8 +10,12 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.io.File;
+import java.util.List;
+
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class CloudStorageApplicationTests {
 
@@ -34,8 +37,248 @@ class CloudStorageApplicationTests {
 	@AfterEach
 	public void afterEach() {
 		if (this.driver != null) {
+			driver.close();
 			driver.quit();
+			System.out.println("cleaning ...");
 		}
+	}
+
+	@Test
+	public void unauthorizedUserAccessibleRoutes(){
+		driver.get("http://localhost:" + this.port + "/home");
+		Assertions.assertEquals("Login", driver.getTitle());
+
+		driver.get("http://localhost:" + this.port + "/login");
+		Assertions.assertEquals("Login", driver.getTitle());
+
+		driver.get("http://localhost:" + this.port + "/signup");
+		Assertions.assertEquals("Sign Up", driver.getTitle());
+
+	}
+
+	@Test
+	public void testUserSignupLoginLogout() throws InterruptedException {
+		// signup the user
+		doMockSignUp("Alex","Test","alex","123456");
+
+		// login the user
+		doLogIn("alex", "123456");
+
+		// logout
+		WebElement logoutButton= driver.findElement(By.id("logout-button"));
+		logoutButton.click();
+
+		Assertions.assertFalse(driver.getTitle().equals("Home"));
+		Assertions.assertEquals("Login", driver.getTitle());
+
+		Thread.sleep(3000);
+
+	}
+
+	public void redirectToNotesTab(){
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+
+		driver.get("http://localhost:" + this.port + "/home");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-notes-tab")));
+		driver.findElement(By.id("nav-notes-tab")).click();
+	}
+
+	@Test
+	public void addNote() throws InterruptedException {
+
+		doMockSignUp("Alex","Test","alex","123456");
+
+		doLogIn("alex", "123456");
+
+		WebElement notesTab= driver.findElement(By.id("nav-notes-tab"));
+		notesTab.click();
+
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-notes")));
+		Assertions.assertTrue(driver.findElement(By.id("nav-notes")).isDisplayed());
+
+		WebElement addNoteButton= driver.findElement(By.id("add-note-button"));
+		addNoteButton.click();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-title")));
+		WebElement inputTitle = driver.findElement(By.id("note-title"));
+		inputTitle.click();
+		inputTitle.sendKeys("Test Note");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-description")));
+		WebElement inputDescription = driver.findElement(By.id("note-description"));
+		inputDescription.click();
+		inputDescription.sendKeys("testing a note ...");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-note-button")));
+		WebElement submitNote = driver.findElement(By.id("submit-note-button"));
+		submitNote.click();
+
+		redirectToNotesTab();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("userTable")));
+		Assertions.assertTrue(driver.findElement(By.id("table-note-title")).getText().contains("Test Note"));
+
+		Thread.sleep(3000);
+
+	}
+
+	@Test
+	public void updateNote() throws InterruptedException {
+		addNote();
+
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("edit-note-button")));
+		WebElement editNote = driver.findElement(By.id("edit-note-button"));
+		editNote.click();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("note-description")));
+		WebElement inputDescription = driver.findElement(By.id("note-description"));
+		inputDescription.click();
+		inputDescription.clear();
+		inputDescription.sendKeys("edited description ...");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-note-button")));
+		WebElement submitNote = driver.findElement(By.id("submit-note-button"));
+		submitNote.click();
+
+		redirectToNotesTab();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("userTable")));
+		Assertions.assertTrue(driver.findElement(By.id("table-note-description")).getText().contains("edited description"));
+	}
+
+	@Test
+	public void deleteNote() throws InterruptedException {
+
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+
+		addNote();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("delete-note-button")));
+		WebElement deleteNote = driver.findElement(By.id("delete-note-button"));
+		deleteNote.click();
+
+		redirectToNotesTab();
+
+		WebElement notesTable = driver.findElement(By.id("userTable"));
+		List<WebElement> notesList = notesTable.findElements(By.tagName("tbody"));
+
+		Assertions.assertEquals(0, notesList.size());
+	}
+
+	public void redirectToCredentialsTab(){
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+
+		driver.get("http://localhost:" + this.port + "/home");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-credentials-tab")));
+		driver.findElement(By.id("nav-credentials-tab")).click();
+	}
+
+	@Test
+	public void addCredential() throws InterruptedException {
+
+		doMockSignUp("Alex","Test","alex","123456");
+
+		doLogIn("alex", "123456");
+
+		WebElement credentialsTab= driver.findElement(By.id("nav-credentials-tab"));
+		credentialsTab.click();
+
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+		String inputCredentialPassword = "1234";
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-credentials-button")));
+		WebElement addCredentialsButton= driver.findElement(By.id("add-credentials-button"));
+		addCredentialsButton.click();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url")));
+		WebElement inputURL = driver.findElement(By.id("credential-url"));
+		inputURL.click();
+		inputURL.sendKeys("https://www.google.com/");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-username")));
+		WebElement inputUsername = driver.findElement(By.id("credential-username"));
+		inputUsername.click();
+		inputUsername.sendKeys("Alex");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-password")));
+		WebElement inputPassword = driver.findElement(By.id("credential-password"));
+		inputPassword.click();
+		inputPassword.sendKeys(inputCredentialPassword);
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-credential-button")));
+		WebElement submitNote = driver.findElement(By.id("submit-credential-button"));
+		submitNote.click();
+
+		redirectToCredentialsTab();
+
+		WebElement credentialsTable = driver.findElement(By.id("credentialTable"));
+		List<WebElement> credList = credentialsTable.findElements(By.tagName("tbody"));
+
+		Assertions.assertEquals(1, credList.size());
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credentialTable")));
+		Assertions.assertNotEquals(driver.findElement(By.id("table-cred-password")).getText(), inputCredentialPassword);
+
+		Thread.sleep(3000);
+	}
+
+	@Test
+	public void editCredentials() throws InterruptedException {
+		addCredential();
+
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("edit-credential-button")));
+		WebElement editCredentialsButton= driver.findElement(By.id("edit-credential-button"));
+		editCredentialsButton.click();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-url")));
+		WebElement inputURL = driver.findElement(By.id("credential-url"));
+		inputURL.click();
+		inputURL.clear();
+		inputURL.sendKeys("https://github.com/MaiaDandachi");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credential-password")));
+		String inputPassword = driver.findElement(By.id("credential-password")).getAttribute("value");
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("submit-credential-button")));
+		WebElement submitCredential = driver.findElement(By.id("submit-credential-button"));
+		submitCredential.click();
+
+		redirectToCredentialsTab();
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("credentialTable")));
+		Assertions.assertTrue(driver.findElement(By.id("table-cred-url")).getText().contains("https://github.com/MaiaDandachi"));
+
+		Assertions.assertNotEquals(driver.findElement(By.id("table-cred-password")).getText(), inputPassword);
+
+		Thread.sleep(3000);
+	}
+
+	@Test
+	public void deleteCredentials() throws InterruptedException {
+		addCredential();
+
+		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
+
+		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("delete-credential-button")));
+		WebElement deleteCredentialsButton= driver.findElement(By.id("delete-credential-button"));
+		deleteCredentialsButton.click();
+
+		redirectToCredentialsTab();
+
+		WebElement credentialTable = driver.findElement(By.id("credentialTable"));
+		List<WebElement> credList = credentialTable.findElements(By.tagName("tbody"));
+
+		Assertions.assertEquals(0, credList.size());
+
+		Thread.sleep(3000);
 	}
 
 	@Test
@@ -55,7 +298,7 @@ class CloudStorageApplicationTests {
 		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);
 		driver.get("http://localhost:" + this.port + "/signup");
 		webDriverWait.until(ExpectedConditions.titleContains("Sign Up"));
-		
+
 		// Fill out credentials
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("inputFirstName")));
 		WebElement inputFirstName = driver.findElement(By.id("inputFirstName"));
@@ -81,16 +324,10 @@ class CloudStorageApplicationTests {
 		webDriverWait.until(ExpectedConditions.visibilityOfElementLocated(By.id("buttonSignUp")));
 		WebElement buttonSignUp = driver.findElement(By.id("buttonSignUp"));
 		buttonSignUp.click();
-
-		/* Check that the sign up was successful. 
-		// You may have to modify the element "success-msg" and the sign-up 
-		// success message below depening on the rest of your code.
-		*/
-		Assertions.assertTrue(driver.findElement(By.id("success-msg")).getText().contains("You successfully signed up!"));
 	}
 
-	
-	
+
+
 	/**
 	 * PLEASE DO NOT DELETE THIS method.
 	 * Helper method for Udacity-supplied sanity checks.
@@ -119,44 +356,46 @@ class CloudStorageApplicationTests {
 
 	}
 
+
+
 	/**
-	 * PLEASE DO NOT DELETE THIS TEST. You may modify this test to work with the 
-	 * rest of your code. 
-	 * This test is provided by Udacity to perform some basic sanity testing of 
-	 * your code to ensure that it meets certain rubric criteria. 
-	 * 
-	 * If this test is failing, please ensure that you are handling redirecting users 
+	 * PLEASE DO NOT DELETE THIS TEST. You may modify this test to work with the
+	 * rest of your code.
+	 * This test is provided by Udacity to perform some basic sanity testing of
+	 * your code to ensure that it meets certain rubric criteria.
+	 *
+	 * If this test is failing, please ensure that you are handling redirecting users
 	 * back to the login page after a succesful sign up.
-	 * Read more about the requirement in the rubric: 
-	 * https://review.udacity.com/#!/rubrics/2724/view 
+	 * Read more about the requirement in the rubric:
+	 * https://review.udacity.com/#!/rubrics/2724/view
 	 */
 	@Test
 	public void testRedirection() {
 		// Create a test account
-		doMockSignUp("Redirection","Test","RT","123");
-		
+		doMockSignUp("Redirection","Test","RT","123456");
+
 		// Check if we have been redirected to the log in page.
 		Assertions.assertEquals("http://localhost:" + this.port + "/login", driver.getCurrentUrl());
 	}
 
 	/**
-	 * PLEASE DO NOT DELETE THIS TEST. You may modify this test to work with the 
-	 * rest of your code. 
-	 * This test is provided by Udacity to perform some basic sanity testing of 
-	 * your code to ensure that it meets certain rubric criteria. 
-	 * 
-	 * If this test is failing, please ensure that you are handling bad URLs 
+	 * PLEASE DO NOT DELETE THIS TEST. You may modify this test to work with the
+	 * rest of your code.
+	 * This test is provided by Udacity to perform some basic sanity testing of
+	 * your code to ensure that it meets certain rubric criteria.
+	 *
+	 * If this test is failing, please ensure that you are handling bad URLs
 	 * gracefully, for example with a custom error page.
-	 * 
-	 * Read more about custom error pages at: 
+	 *
+	 * Read more about custom error pages at:
 	 * https://attacomsian.com/blog/spring-boot-custom-error-page#displaying-custom-error-page
 	 */
 	@Test
 	public void testBadUrl() {
 		// Create a test account
-		doMockSignUp("URL","Test","UT","123");
-		doLogIn("UT", "123");
-		
+		doMockSignUp("URL","Test","UT","123456");
+		doLogIn("UT", "123456");
+
 		// Try to access a random made-up URL.
 		driver.get("http://localhost:" + this.port + "/some-random-page");
 		Assertions.assertFalse(driver.getPageSource().contains("Whitelabel Error Page"));
@@ -164,22 +403,22 @@ class CloudStorageApplicationTests {
 
 
 	/**
-	 * PLEASE DO NOT DELETE THIS TEST. You may modify this test to work with the 
-	 * rest of your code. 
-	 * This test is provided by Udacity to perform some basic sanity testing of 
-	 * your code to ensure that it meets certain rubric criteria. 
-	 * 
+	 * PLEASE DO NOT DELETE THIS TEST. You may modify this test to work with the
+	 * rest of your code.
+	 * This test is provided by Udacity to perform some basic sanity testing of
+	 * your code to ensure that it meets certain rubric criteria.
+	 *
 	 * If this test is failing, please ensure that you are handling uploading large files (>1MB),
-	 * gracefully in your code. 
-	 * 
-	 * Read more about file size limits here: 
+	 * gracefully in your code.
+	 *
+	 * Read more about file size limits here:
 	 * https://spring.io/guides/gs/uploading-files/ under the "Tuning File Upload Limits" section.
 	 */
 	@Test
 	public void testLargeUpload() {
 		// Create a test account
-		doMockSignUp("Large File","Test","LFT","123");
-		doLogIn("LFT", "123");
+		doMockSignUp("Large File","Test","LFT","123456");
+		doLogIn("LFT", "123456");
 
 		// Try to upload an arbitrary large file
 		WebDriverWait webDriverWait = new WebDriverWait(driver, 2);

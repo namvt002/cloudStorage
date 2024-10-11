@@ -1,17 +1,23 @@
 package com.udacity.jwdnd.course1.cloudstorage.controller;
 
+import com.udacity.jwdnd.course1.cloudstorage.mapper.UserMapper;
 import com.udacity.jwdnd.course1.cloudstorage.model.File;
 import com.udacity.jwdnd.course1.cloudstorage.model.User;
 import com.udacity.jwdnd.course1.cloudstorage.services.FileService;
 import com.udacity.jwdnd.course1.cloudstorage.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -21,82 +27,83 @@ import java.io.OutputStream;
  * Controller File.
  */
 @Controller
+@RequestMapping("/home/files")
 public class FileController {
 
     private FileService fileService;
-    private UserService userService;
+    private UserMapper userMapper;
 
     /**
      * Constructor File.
      */
-    public FileController(FileService fileService, UserService userService) {
+    public FileController(FileService fileService, UserMapper userMapper) {
         this.fileService = fileService;
-        this.userService = userService;
+        this.userMapper = userMapper;
     }
 
     /**
-     * Method add file.
+     * Method upload file.
      */
-    @PostMapping("/files")
-    public String fileUpload(@RequestParam("fileUpload")MultipartFile multipartFile, Model model, Authentication authentication) throws IOException {
+    @PostMapping
+    public String handleUploadFile(@RequestParam("fileUpload") MultipartFile fileUpload, Authentication authentication, RedirectAttributes redirectAttributes) throws IOException {
 
-        User userModel = userService.getUser(authentication.getName());
-        Integer userId = userModel.getUserId();
-        String filename = multipartFile.getOriginalFilename();
+        String uploadError = null;
 
-        if (!fileService.fileIsAvailable(userId, filename)) {
-            model.addAttribute("success", false);
-            model.addAttribute("error", "FILE ALREADY.");
-            return "result";
-        } else {
-            String contentType = multipartFile.getContentType();
-            Long fileSize = multipartFile.getSize();
-            byte[] fileData = multipartFile.getBytes();
+        String loggedInUserName = (String) authentication.getPrincipal();
+        User user = userMapper.getUser(loggedInUserName);
 
-            if(multipartFile.getSize()  <= maximumFileSize.toBytes()) {
-                fileService.uploadFile(new File(null, filename, contentType, fileSize, userId, fileData ));
-                model.addAttribute("success", true);
-            }
-            return "result";
+        //check file empty
+        if (fileUpload.isEmpty()) {
+            uploadError = "Please select a non-empty file.";
         }
-    }
 
-    /**
-     * Method get File.
-     */
-    @GetMapping("/files/{fileId}")
-    public String deleteFile(@PathVariable("fileId") Integer fileId) {
+        //check file already
+        if (!fileService.isFileAvailable(fileUpload.getOriginalFilename(), user.getUserId())) {
+            uploadError = "File already exists.";
 
-        fileService.delete(fileId);
-        return "redirect:/result";
-    }
-
-    @Autowired
-    @Value("${files.max-file-size}")
-    private DataSize maximumFileSize;
-
-    /**
-     * Method view File.
-     */
-    @GetMapping("/files/download/{fileId}")
-    public void viewFile(@PathVariable("fileId") Integer fileId, HttpServletResponse res, Authentication authentication) throws IOException {
-
-        User currentUser = userService.getUser(authentication.getName());
-        File file = fileService.getFile(fileId);
-
-        res.setContentType(file.getContentType());
-        res.setHeader("Content-Disposition", "filename=\"" + file.getFilename() + "\"");
-        res.setContentLengthLong(file.getFileSize());
-
-        OutputStream ops = res.getOutputStream();
-
-        try {
-            ops.write(file.getFileData(), 0, file.getFileData().length);
-        } catch (Exception e) {
-
-        } finally {
-            ops.close();
         }
+
+        if(uploadError!=null) {
+            redirectAttributes.addFlashAttribute("error", uploadError);
+            return "redirect:/result?error";
+        }
+
+        //Upload file
+        fileService.addFile(fileUpload, user.getUserId());
+
+        return "redirect:/result?success";
+    }
+
+    /**
+     * Method delete file.
+     */
+    @GetMapping("/delete")
+    public String deleteFile(@RequestParam("id") int fileid, Authentication authentication, RedirectAttributes redirectAttributes){
+
+        String loggedInUserName = (String) authentication.getPrincipal();
+        User user = userMapper.getUser(loggedInUserName);
+        String deleteError = null;
+
+        if(fileid > 0){
+            fileService.deleteFile(fileid);
+            return "redirect:/result?success";
+        }
+
+
+        redirectAttributes.addAttribute("error", "Unable to delete the file.");
+        return "redirect:/result?error";
+    }
+
+    /**
+     * Method download file.
+     */
+    @GetMapping("/download/{fileId}")
+    public ResponseEntity<ByteArrayResource> downloadFile(@PathVariable Integer fileId){
+        File file = fileService.getFileById(fileId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.getContenttype()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\""+ file.getFilename()+"\"")
+                .body(new ByteArrayResource(file.getFiledata()));
     }
 
 }
