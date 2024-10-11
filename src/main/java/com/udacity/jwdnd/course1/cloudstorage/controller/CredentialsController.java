@@ -60,7 +60,6 @@ public class CredentialsController {
             return "redirect:/result?success";
         }
 
-
         redirectAttributes.addAttribute("error", "Unable to delete the credentials.");
         return "redirect:/result?error";
     }
